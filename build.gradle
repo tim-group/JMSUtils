@@ -1,0 +1,17 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+// this build script works with Gradle 1.0-milestone-8, and not with 1.0-milestone-3
+
+sourceCompatibility = 1.6
+
+repositories {
+    mavenCentral()
+}
+
+eclipse {
+    classpath {
+        // this line shouldn't be necessary, but as of M8, it is
+        defaultOutputDir = project.sourceSets.main.classesDir
+    }
+}
