@@ -5,9 +5,16 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;
+import javax.jms.MapMessage;
 import javax.jms.Message;
 import javax.jms.Queue;
 import javax.jms.QueueConnection;
@@ -19,6 +26,9 @@ import javax.jms.TextMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.timgroup.reflection.ConvertibleType;
+import com.timgroup.reflection.WrapperUtil;
 
 public abstract class JMSClient {
     
@@ -68,6 +78,55 @@ public abstract class JMSClient {
         return sb.toString();
     }
     
+    public void sendMapMessage(String queueName) throws JMSException {
+        Map<String, Object> entries;
+        try {
+            entries = readFullyAsMap();
+        }
+        catch (IOException e) {
+            throw JMSUtil.newJMSException("error reading from standard input", e);
+        }
+        Queue queue = getQueue(queueName);
+        QueueConnection connection = createConnection();
+        try {
+            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            QueueSender sender = session.createSender(queue);
+            MapMessage message = session.createMapMessage();
+            for (Entry<String, Object> entry: entries.entrySet()) {
+                message.setObject(entry.getKey(), entry.getValue());
+            }
+            sender.send(message);
+        }
+        finally {
+            closeQuietly(connection);
+        }
+    }
+    
+    private HashMap<String, Object> readFullyAsMap() throws IOException {
+        BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
+        HashMap<String, Object> map = new LinkedHashMap<String, Object>();
+        String line;
+        while ((line = in.readLine()) != null) {
+            int equals = line.indexOf('=');
+            if (equals == -1) throw new IOException("bad line: " + line);
+            String key = line.substring(0, equals);
+            String valueStr = line.substring(equals + 1);
+            int colon = key.indexOf(":");
+            String tag;
+            if (colon != -1) {
+                tag = key.substring(colon + 1);
+                key = key.substring(0, colon);
+            }
+            else {
+                tag = String.class.getName();
+            }
+            Class<?> type = WrapperUtil.forName(tag);
+            Object value = ConvertibleType.convert(valueStr, type);
+            map.put(key, value);
+        }
+        return map;
+    }
+    
     private void closeQuietly(Connection connection) {
         try {
             connection.close();
@@ -101,6 +160,22 @@ public abstract class JMSClient {
         if (message instanceof TextMessage) {
             TextMessage textMessage = (TextMessage) message;
             text = textMessage.getText();
+        }
+        else if (message instanceof MapMessage) {
+            MapMessage mapMessage = (MapMessage) message;
+            StringBuilder sb = new StringBuilder();
+            @SuppressWarnings("unchecked")
+            ArrayList<String> keys = Collections.list(mapMessage.getMapNames());
+            for (String key: keys) {
+                Object value = mapMessage.getObject(key);
+                sb.append(key);
+                sb.append(':');
+                sb.append(WrapperUtil.getName(value.getClass()));
+                sb.append('=');
+                sb.append(value);
+                sb.append('\n');
+            }
+            text = sb.toString();
         }
         else {
             text = message.toString();
