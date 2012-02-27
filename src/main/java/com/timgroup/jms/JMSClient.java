@@ -28,7 +28,7 @@ public abstract class JMSClient {
     
     public abstract void createTransientQueue(String queueName) throws JMSException;
     
-    public void sendTextMessage(String queueName, String text) throws JMSException {
+    public void sendShortTextMessage(String queueName, String text) throws JMSException {
         Queue queue = getQueue(queueName);
         QueueConnection connection = createConnection();
         try {
