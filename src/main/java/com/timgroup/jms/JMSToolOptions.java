@@ -2,8 +2,8 @@ package com.timgroup.jms;
 
 import java.util.List;
 
-import uk.co.flamingpenguin.jewel.cli.Option;
-import uk.co.flamingpenguin.jewel.cli.Unparsed;
+import com.lexicalscope.jewel.cli.Option;
+import com.lexicalscope.jewel.cli.Unparsed;
 
 public interface JMSToolOptions {
     
@@ -13,7 +13,7 @@ public interface JMSToolOptions {
     @Option(helpRequest = true)
     public boolean getHelp();
     
-    @Unparsed(name = "URL COMMAND ARGUMENTS")
+    @Unparsed(name = "URL COMMAND ARGUMENTS", defaultValue={})
     public List<String> getArguments();
     
 }

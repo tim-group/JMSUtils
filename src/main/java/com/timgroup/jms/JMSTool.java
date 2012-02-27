@@ -7,10 +7,9 @@ import java.util.List;
 
 import javax.jms.JMSException;
 
-import uk.co.flamingpenguin.jewel.cli.ArgumentValidationException;
-import uk.co.flamingpenguin.jewel.cli.CliFactory;
-import uk.co.flamingpenguin.jewel.cli.CommandLineInterface;
-
+import com.lexicalscope.jewel.cli.ArgumentValidationException;
+import com.lexicalscope.jewel.cli.CliFactory;
+import com.lexicalscope.jewel.cli.CommandLineInterface;
 import com.timgroup.jms.JMSClient.Factory;
 import com.timgroup.jms.hornetq.HornetQClientImpl;
 import com.timgroup.reflection.ReflectedObject;
@@ -54,8 +53,7 @@ public class JMSTool {
     private static JMSToolOptions parseOptions(String[] args) throws ArgumentValidationException {
         Class<JMSToolOptions> optionsClass = JMSToolOptions.class;
         JMSToolOptions options = CliFactory.parseArguments(optionsClass, args);
-        List<String> arguments = options.getArguments();
-        if (arguments == null || arguments.isEmpty()) CliFactory.parseArguments(optionsClass, "--help");
+        if (options.getArguments().isEmpty()) CliFactory.parseArguments(optionsClass, "--help");
         return options;
     }
     
