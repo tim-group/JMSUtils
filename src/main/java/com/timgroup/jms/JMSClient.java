@@ -24,44 +24,52 @@ import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import com.timgroup.reflection.ConvertibleType;
+import com.timgroup.reflection.WrapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.timgroup.reflection.ConvertibleType;
-import com.timgroup.reflection.WrapperUtil;
-
 public abstract class JMSClient {
     
-    public static interface Factory {
-        public JMSClient create(URI uri) throws JMSException;
-    }
-    
     private static final Logger LOGGER = LoggerFactory.getLogger(JMSClient.class);
+    
+    public static interface Factory {
+        
+        public JMSClient create(URI uri) throws JMSException;
+        
+    }
     
     public abstract void createQueue(String queueName) throws JMSException;
     
     public abstract void createTransientQueue(String queueName) throws JMSException;
     
-    public void sendShortTextMessage(String queueName, String text) throws JMSException {
-        Queue queue = getQueue(queueName);
-        QueueConnection connection = createConnection();
-        try {
-            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-            QueueSender sender = session.createSender(queue);
-            TextMessage message = session.createTextMessage(text);
-            sender.send(message);
-        }
-        finally {
-            closeQuietly(connection);
-        }
+    public void sendShortTextMessage(String queueName, final String text) throws JMSException {
+        performSendAction(queueName, new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                TextMessage message = session.createTextMessage(text);
+                send(sender, message);
+            }
+        });
+    }
+    
+    public void sendShortTextMessageRepeatedly(String queueName, final String text, final int repeats) throws JMSException {
+        performSendAction(queueName, new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                for (int i = 0; i < repeats; i++) {
+                    TextMessage message = session.createTextMessage(text);
+                    send(sender, message);
+                }
+            }
+        });
     }
     
     public void sendTextMessage(String queueName) throws JMSException {
         String text;
         try {
             text = readFully(System.in);
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw JMSUtil.newJMSException("error reading from standard input", e);
         }
         sendShortTextMessage(queueName, text);
@@ -79,27 +87,23 @@ public abstract class JMSClient {
     }
     
     public void sendMapMessage(String queueName) throws JMSException {
-        Map<String, Object> entries;
+        final Map<String, Object> entries;
         try {
             entries = readFullyAsMap();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw JMSUtil.newJMSException("error reading from standard input", e);
         }
-        Queue queue = getQueue(queueName);
-        QueueConnection connection = createConnection();
-        try {
-            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
-            QueueSender sender = session.createSender(queue);
-            MapMessage message = session.createMapMessage();
-            for (Entry<String, Object> entry: entries.entrySet()) {
-                message.setObject(entry.getKey(), entry.getValue());
+        
+        performSendAction(queueName, new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                MapMessage message = session.createMapMessage();
+                for (Entry<String, Object> entry : entries.entrySet()) {
+                    message.setObject(entry.getKey(), entry.getValue());
+                }
+                send(sender, message);
             }
-            sender.send(message);
-        }
-        finally {
-            closeQuietly(connection);
-        }
+        });
     }
     
     private HashMap<String, Object> readFullyAsMap() throws IOException {
@@ -116,8 +120,7 @@ public abstract class JMSClient {
             if (colon != -1) {
                 tag = key.substring(colon + 1);
                 key = key.substring(0, colon);
-            }
-            else {
+            } else {
                 tag = String.class.getName();
             }
             Class<?> type = WrapperUtil.forName(tag);
@@ -127,11 +130,35 @@ public abstract class JMSClient {
         return map;
     }
     
+    private static interface SendAction {
+        
+        public void perform(QueueSession session, QueueSender sender) throws JMSException;
+        
+    }
+    
+    private void performSendAction(String queueName, SendAction sendAction) throws JMSException {
+        Queue queue = getQueue(queueName);
+        QueueConnection connection = createConnection();
+        try {
+            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            QueueSender sender = session.createSender(queue);
+            sendAction.perform(session, sender);
+        } finally {
+            closeQuietly(connection);
+        }
+    }
+    
+    private void send(QueueSender sender, Message message) throws JMSException {
+        long t0 = System.nanoTime();
+        sender.send(message);
+        long t1 = System.nanoTime();
+        LOGGER.info("sent message in {} ns", t1 - t0);
+    }
+    
     private void closeQuietly(Connection connection) {
         try {
             connection.close();
-        }
-        catch (JMSException e) {
+        } catch (JMSException e) {
             LOGGER.error("error closing connection " + connection, e);
         }
     }
@@ -149,8 +176,7 @@ public abstract class JMSClient {
             QueueReceiver receiver = session.createReceiver(queue);
             Message message = receiver.receive();
             return toString(message);
-        }
-        finally {
+        } finally {
             closeQuietly(connection);
         }
     }
@@ -160,13 +186,12 @@ public abstract class JMSClient {
         if (message instanceof TextMessage) {
             TextMessage textMessage = (TextMessage) message;
             text = textMessage.getText();
-        }
-        else if (message instanceof MapMessage) {
+        } else if (message instanceof MapMessage) {
             MapMessage mapMessage = (MapMessage) message;
             StringBuilder sb = new StringBuilder();
             @SuppressWarnings("unchecked")
             ArrayList<String> keys = Collections.list(mapMessage.getMapNames());
-            for (String key: keys) {
+            for (String key : keys) {
                 Object value = mapMessage.getObject(key);
                 sb.append(key);
                 sb.append(':');
@@ -176,8 +201,7 @@ public abstract class JMSClient {
                 sb.append('\n');
             }
             text = sb.toString();
-        }
-        else {
+        } else {
             text = message.toString();
         }
         return text;
