@@ -11,6 +11,7 @@ import com.lexicalscope.jewel.cli.ArgumentValidationException;
 import com.lexicalscope.jewel.cli.CliFactory;
 import com.lexicalscope.jewel.cli.CommandLineInterface;
 import com.timgroup.jms.JMSClient.Factory;
+import com.timgroup.jms.activemq.ActiveMQClientImpl;
 import com.timgroup.jms.hornetq.HornetQClientImpl;
 import com.timgroup.reflection.ReflectedObject;
 import com.timgroup.util.Utils;
@@ -72,6 +73,7 @@ public class JMSTool {
     
     private static Factory getClientFactoryForScheme(String scheme) {
         if (scheme.equals("hornetq")) return new HornetQClientImpl.Factory();
+        else if (scheme.equals("activemq")) return new ActiveMQClientImpl.Factory();
         else throw new IllegalArgumentException("unknown scheme: " + scheme);
         // TODO: handle the 'jndi' scheme, which does a JNDI lookup
         // http://www.ietf.org/rfc/rfc6167.txt

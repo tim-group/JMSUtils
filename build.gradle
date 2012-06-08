@@ -21,6 +21,8 @@ dependencies {
     compile group: 'org.hornetq', name: 'hornetq-core-client', version: hornetqVersion
     compile group: 'org.hornetq', name: 'hornetq-jms-client', version: hornetqVersion
     
+    compile group: 'org.apache.activemq', name: 'activemq-core', version: '5.6.0'
+    
     compile group: 'com.lexicalscope.jewelcli', name: 'jewelcli', version: '0.+'
     compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
     
