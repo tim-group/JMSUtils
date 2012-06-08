@@ -4,7 +4,6 @@ import java.net.URI;
 import java.util.HashMap;
 
 import javax.jms.JMSException;
-import javax.jms.Queue;
 import javax.jms.QueueConnection;
 
 import org.hornetq.api.core.HornetQException;
@@ -109,10 +108,12 @@ public class HornetQClientImpl extends JMSClient {
         return locator;
     }
     
+    @Override
     public void createQueue(String queueName) throws JMSException {
         createQueue(queueName, true);
     }
     
+    @Override
     public void createTransientQueue(String queueName) throws JMSException {
         createQueue(queueName, false);
     }
@@ -125,11 +126,6 @@ public class HornetQClientImpl extends JMSClient {
         catch (HornetQException e) {
             throw JMSUtil.newJMSException(e);
         }
-    }
-    
-    @Override
-    protected Queue getQueue(String queueName) {
-        return HornetQJMSClient.createQueue(queueName);
     }
     
     @Override

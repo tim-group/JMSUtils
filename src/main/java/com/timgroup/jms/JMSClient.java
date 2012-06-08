@@ -24,10 +24,11 @@ import javax.jms.QueueSession;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
-import com.timgroup.reflection.ConvertibleType;
-import com.timgroup.reflection.WrapperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.timgroup.reflection.ConvertibleType;
+import com.timgroup.reflection.WrapperUtil;
 
 public abstract class JMSClient {
     
@@ -137,10 +138,10 @@ public abstract class JMSClient {
     }
     
     private void performSendAction(String queueName, SendAction sendAction) throws JMSException {
-        Queue queue = getQueue(queueName);
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            Queue queue = session.createQueue(queueName);
             QueueSender sender = session.createSender(queue);
             sendAction.perform(session, sender);
         } finally {
@@ -163,16 +164,14 @@ public abstract class JMSClient {
         }
     }
     
-    protected abstract Queue getQueue(String queueName) throws JMSException;
-    
     protected abstract QueueConnection createConnection() throws JMSException;
     
     public String receiveMessage(String queueName) throws JMSException {
-        Queue queue = getQueue(queueName);
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
             connection.start();
+            Queue queue = session.createQueue(queueName);
             QueueReceiver receiver = session.createReceiver(queue);
             Message message = receiver.receive();
             return toString(message);
