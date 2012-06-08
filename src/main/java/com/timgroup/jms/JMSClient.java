@@ -156,7 +156,7 @@ public abstract class JMSClient {
         LOGGER.info("sent message in {} ns", t1 - t0);
     }
     
-    private void closeQuietly(Connection connection) {
+    public void closeQuietly(Connection connection) {
         try {
             connection.close();
         } catch (JMSException e) {
@@ -164,7 +164,7 @@ public abstract class JMSClient {
         }
     }
     
-    protected abstract QueueConnection createConnection() throws JMSException;
+    public abstract QueueConnection createConnection() throws JMSException;
     
     public String receiveMessage(String queueName) throws JMSException {
         QueueConnection connection = createConnection();

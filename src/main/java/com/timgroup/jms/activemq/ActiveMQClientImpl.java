@@ -58,7 +58,7 @@ public class ActiveMQClientImpl extends JMSClient {
     }
     
     @Override
-    protected QueueConnection createConnection() throws JMSException {
+    public QueueConnection createConnection() throws JMSException {
         return connectionFactory.createQueueConnection();
     }
     

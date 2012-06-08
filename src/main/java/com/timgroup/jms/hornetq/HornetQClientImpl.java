@@ -129,7 +129,7 @@ public class HornetQClientImpl extends JMSClient {
     }
     
     @Override
-    protected QueueConnection createConnection() throws JMSException {
+    public QueueConnection createConnection() throws JMSException {
         HornetQConnectionFactory cf = HornetQJMSClient.createConnectionFactoryWithoutHA(JMSFactoryType.CF, transportConfiguration);
         return cf.createQueueConnection();
     }
