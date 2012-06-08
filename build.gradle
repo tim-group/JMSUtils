@@ -12,13 +12,15 @@ repositories {
     mavenCentral()
 }
 
-hornetqVersion = '2.2.5.Final'
-slf4jVersion = '1.+'
+def hornetqVersion = '2.2.5.Final'
+def slf4jVersion = '1.+'
 dependencies {
     compile group: 'javax.jms', name: 'jms-api', version: '1.+' // note that this works for compilation, but probably not unit testing
+    
     compile group: 'org.hornetq', name: 'hornetq-core', version: hornetqVersion
     compile group: 'org.hornetq', name: 'hornetq-core-client', version: hornetqVersion
     compile group: 'org.hornetq', name: 'hornetq-jms-client', version: hornetqVersion
+    
     compile group: 'com.lexicalscope.jewelcli', name: 'jewelcli', version: '0.+'
     compile group: 'org.slf4j', name: 'slf4j-api', version: slf4jVersion
     
