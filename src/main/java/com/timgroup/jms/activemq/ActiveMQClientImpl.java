@@ -30,7 +30,7 @@ public class ActiveMQClientImpl extends JMSClient {
         
         URI brokerURL;
         try {
-            brokerURL = new URI("tcp", null, host, port, null, null, null);
+            brokerURL = new URI("tcp", null, host, port, null, "jms.prefetchPolicy.all=1", null);
         } catch (URISyntaxException e) {
             throw JMSUtil.newJMSException("barely plausible error constructing broker URL", e);
         }
