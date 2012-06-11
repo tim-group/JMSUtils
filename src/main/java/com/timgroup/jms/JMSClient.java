@@ -66,6 +66,43 @@ public abstract class JMSClient {
         });
     }
     
+    public void sendHeavyMessages(String queueName, final int repeats) throws JMSException {
+        performSendAction(queueName, new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                for (int i = 0; i < repeats; i++) {
+                    TextMessage message = session.createTextMessage(constructMessage(i));
+                    send(sender, message);
+                }
+            }
+        });
+    }
+    
+    private String constructMessage( int id ) {
+        if ( id % 2 == 0 )
+            return ".........." + id;
+        else
+            return "..................." + id;
+    }
+    
+    public void sendShortTextMessages(String queueName) throws JMSException {
+        performSendAction(queueName, new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                try {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(System.in, "UTF-8"));
+                    String line;
+                    while ((line = in.readLine()) != null) {
+                        TextMessage message = session.createTextMessage(line);
+                        send(sender, message);
+                    }
+                } catch (IOException e) {
+                    throw JMSUtil.newJMSException("Error reading messages", e);
+                }
+            }
+        });
+    }
+    
     public void sendTextMessage(String queueName) throws JMSException {
         String text;
         try {
@@ -178,6 +215,42 @@ public abstract class JMSClient {
         } finally {
             closeQuietly(connection);
         }
+    }
+    
+    public void receiveAndProcessMessages(String queueName) throws JMSException {
+        QueueConnection connection = createConnection();
+        try {
+            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            connection.start();
+            Queue queue = session.createQueue(queueName);
+            QueueReceiver receiver = session.createReceiver(queue);
+            while (true) {
+                Message message = receiver.receive();
+                processMessage(message);
+            }
+        } finally {
+            closeQuietly(connection);
+        }
+    }
+
+    private void processMessage(Message message) throws JMSException {
+        String text = toString(message);
+        LOGGER.info("processing message {}", text);
+        long t0 = System.nanoTime();
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '.') {
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    throw JMSUtil.newJMSException("interrupted while processing message", e);
+                }
+            }
+            else {
+                break;
+            }
+        }
+        long t1 = System.nanoTime();
+        LOGGER.info("processed message {} in {} ns", text, t1 - t0);
     }
     
     private String toString(Message message) throws JMSException {
