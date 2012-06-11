@@ -84,11 +84,13 @@ public abstract class JMSClient {
         });
     }
     
-    private String constructMessage( int id ) {
-        if ( id % 2 == 0 )
+    private String constructMessage(int id) {
+        if (id % 2 == 0) {
             return ".........." + id;
-        else
+        }
+        else {
             return "..................." + id;
+        }
     }
     
     public void sendShortTextMessages() throws JMSException {
