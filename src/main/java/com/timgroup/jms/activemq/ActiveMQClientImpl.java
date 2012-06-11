@@ -25,6 +25,7 @@ public class ActiveMQClientImpl extends JMSClient {
     private final ActiveMQConnectionFactory connectionFactory;
     
     public ActiveMQClientImpl(URI uri) throws JMSException {
+        super(uri.getPath());
         String host = uri.getHost();
         int port = Utils.defaulting(uri.getPort(), -1, 61616);
         
@@ -38,7 +39,7 @@ public class ActiveMQClientImpl extends JMSClient {
     }
     
     @Override
-    public void createQueue(String queueName) throws JMSException {
+    public void createQueue() throws JMSException {
         QueueConnection connection = createConnection();
         try {
             Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -53,8 +54,8 @@ public class ActiveMQClientImpl extends JMSClient {
     }
     
     @Override
-    public void createTransientQueue(String queueName) throws JMSException {
-        createQueue(queueName);
+    public void createTransientQueue() throws JMSException {
+        createQueue();
     }
     
     @Override

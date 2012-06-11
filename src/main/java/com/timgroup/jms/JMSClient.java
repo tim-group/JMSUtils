@@ -40,12 +40,18 @@ public abstract class JMSClient {
         
     }
     
-    public abstract void createQueue(String queueName) throws JMSException;
+    protected final String queueName;
     
-    public abstract void createTransientQueue(String queueName) throws JMSException;
+    protected JMSClient(String queueName) {
+        this.queueName = queueName;
+    }
     
-    public void sendShortTextMessage(String queueName, final String text) throws JMSException {
-        performSendAction(queueName, new SendAction() {
+    public abstract void createQueue() throws JMSException;
+    
+    public abstract void createTransientQueue() throws JMSException;
+    
+    public void sendShortTextMessage(final String text) throws JMSException {
+        performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 TextMessage message = session.createTextMessage(text);
@@ -54,8 +60,8 @@ public abstract class JMSClient {
         });
     }
     
-    public void sendShortTextMessageRepeatedly(String queueName, final String text, final int repeats) throws JMSException {
-        performSendAction(queueName, new SendAction() {
+    public void sendShortTextMessageRepeatedly(final String text, final int repeats) throws JMSException {
+        performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 for (int i = 0; i < repeats; i++) {
@@ -66,8 +72,8 @@ public abstract class JMSClient {
         });
     }
     
-    public void sendHeavyMessages(String queueName, final int repeats) throws JMSException {
-        performSendAction(queueName, new SendAction() {
+    public void sendHeavyMessages(final int repeats) throws JMSException {
+        performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 for (int i = 0; i < repeats; i++) {
@@ -85,8 +91,8 @@ public abstract class JMSClient {
             return "..................." + id;
     }
     
-    public void sendShortTextMessages(String queueName) throws JMSException {
-        performSendAction(queueName, new SendAction() {
+    public void sendShortTextMessages() throws JMSException {
+        performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 try {
@@ -103,14 +109,14 @@ public abstract class JMSClient {
         });
     }
     
-    public void sendTextMessage(String queueName) throws JMSException {
+    public void sendTextMessage() throws JMSException {
         String text;
         try {
             text = readFully(System.in);
         } catch (IOException e) {
             throw JMSUtil.newJMSException("error reading from standard input", e);
         }
-        sendShortTextMessage(queueName, text);
+        sendShortTextMessage(text);
     }
     
     private String readFully(InputStream stream) throws IOException {
@@ -124,7 +130,7 @@ public abstract class JMSClient {
         return sb.toString();
     }
     
-    public void sendMapMessage(String queueName) throws JMSException {
+    public void sendMapMessage() throws JMSException {
         final Map<String, Object> entries;
         try {
             entries = readFullyAsMap();
@@ -132,7 +138,7 @@ public abstract class JMSClient {
             throw JMSUtil.newJMSException("error reading from standard input", e);
         }
         
-        performSendAction(queueName, new SendAction() {
+        performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 MapMessage message = session.createMapMessage();
@@ -174,7 +180,7 @@ public abstract class JMSClient {
         
     }
     
-    private void performSendAction(String queueName, SendAction sendAction) throws JMSException {
+    private void performSendAction(SendAction sendAction) throws JMSException {
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -203,7 +209,7 @@ public abstract class JMSClient {
     
     public abstract QueueConnection createConnection() throws JMSException;
     
-    public String receiveMessage(String queueName) throws JMSException {
+    public String receiveMessage() throws JMSException {
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -217,7 +223,7 @@ public abstract class JMSClient {
         }
     }
     
-    public void receiveAndProcessHeavyMessages(String queueName) throws JMSException {
+    public void receiveAndProcessHeavyMessages() throws JMSException {
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -232,7 +238,7 @@ public abstract class JMSClient {
             closeQuietly(connection);
         }
     }
-
+    
     private void processMessage(Message message) throws JMSException {
         String text = toString(message);
         LOGGER.info("processing message {}", text);
@@ -244,8 +250,7 @@ public abstract class JMSClient {
                 } catch (InterruptedException e) {
                     throw JMSUtil.newJMSException("interrupted while processing message", e);
                 }
-            }
-            else {
+            } else {
                 break;
             }
         }

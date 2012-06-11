@@ -12,9 +12,9 @@ This will build the code and generate some start scripts. To run, say::
 
 You should see some helpful command-line help.
 
-URLs identify brokers (not queues), and are of the form::
+A URL identifies a particular queue on a broker, and is of the form::
 
-    protocol://host:port
+    protocol://host:port/queueName
 
 Where protocol is one of:
 
@@ -27,22 +27,22 @@ Commands are simply methods on the class ``com.timgroup.jms.JMSClient``. Argumen
 
 Some commands you might particularly enjoy:
 
-createQueue queueName
+createQueue
 	create a durable queue on the broker
 
-sendShortTextMessage queueName text
-	send a message with the given text to the given queue
+sendShortTextMessage text
+	send a message with the given text
 
-sendTextMessage queueName
-	send a message with text read from standard input to the given queue
+sendTextMessage
+	send a message with text read from standard input
 
-receiveMessage queueName
-	receive a message from the given queue and write it to standard output
+receiveMessage
+	receive a message and write it to standard output
 
 There are some commands which make use of the idea of 'heavy messages' for testing. A heavy message's text consists of some number of full stops, followed by a label, usually a number. Each dot stands for one second's processing work for the receiver.
 
-sendHeavyMessages queueName repeats
-	send the given number (`repeats`) of heavy messages to the given queue; uses a single session for all the messages
+sendHeavyMessages repeats
+	send the given number (`repeats`) of heavy messages; uses a single session for all the messages
 
-receiveAndProcessHeavyMessages queueName
-	forever receives messages from a queue and pretends to process them by sleeping for a second per leading full stop; uses a single session for all the messages
+receiveAndProcessHeavyMessages
+	forever receives messages and pretends to process them by sleeping for a second per leading full stop; uses a single session for all the messages

@@ -36,17 +36,18 @@ public class HornetQClientImpl extends JMSClient {
     private final ClientSession session;
     private final TransportConfiguration transportConfiguration;
     
-    public HornetQClientImpl(String host, int port, String username, String password) throws JMSException {
+    public HornetQClientImpl(String host, int port, String username, String password, String queueName) throws JMSException {
+        super(queueName);
         transportConfiguration = makeTransportConfiguration(host, port);
         session = createSession(transportConfiguration, username, password);
     }
     
-    public HornetQClientImpl(String host, int port) throws JMSException {
-        this(host, port, null, null);
+    public HornetQClientImpl(String host, int port, String queueName) throws JMSException {
+        this(host, port, null, null, queueName);
     }
     
     public HornetQClientImpl(URI uri) throws JMSException {
-        this(uri.getHost(), Utils.defaulting(uri.getPort(), -1, 5445), Utils.username(uri), Utils.password(uri));
+        this(uri.getHost(), Utils.defaulting(uri.getPort(), -1, 5445), Utils.username(uri), Utils.password(uri), uri.getPath());
     }
     
     private TransportConfiguration makeTransportConfiguration(String host, int port) {
@@ -109,16 +110,16 @@ public class HornetQClientImpl extends JMSClient {
     }
     
     @Override
-    public void createQueue(String queueName) throws JMSException {
-        createQueue(queueName, true);
+    public void createQueue() throws JMSException {
+        createQueue(true);
     }
     
     @Override
-    public void createTransientQueue(String queueName) throws JMSException {
-        createQueue(queueName, false);
+    public void createTransientQueue() throws JMSException {
+        createQueue(false);
     }
     
-    private void createQueue(String queueName, boolean durable) throws JMSException {
+    private void createQueue(boolean durable) throws JMSException {
         try {
             String coreQueueName = JMS_QUEUE_PREFIX + queueName;
             session.createQueue(JMS_QUEUE_PREFIX + queueName, coreQueueName, durable);
