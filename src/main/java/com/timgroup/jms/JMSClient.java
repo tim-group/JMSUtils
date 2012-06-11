@@ -217,7 +217,7 @@ public abstract class JMSClient {
         }
     }
     
-    public void receiveAndProcessMessages(String queueName) throws JMSException {
+    public void receiveAndProcessHeavyMessages(String queueName) throws JMSException {
         QueueConnection connection = createConnection();
         try {
             QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
