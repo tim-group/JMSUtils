@@ -225,6 +225,22 @@ public abstract class JMSClient {
         }
     }
     
+    public void receiveMessages() throws JMSException {
+        QueueConnection connection = createConnection();
+        try {
+            QueueSession session = connection.createQueueSession(false, Session.AUTO_ACKNOWLEDGE);
+            connection.start();
+            Queue queue = session.createQueue(queueName);
+            QueueReceiver receiver = session.createReceiver(queue);
+            while (true) {
+                Message message = receiver.receive();
+                LOGGER.info("received message {}", toString(message));
+            }
+        } finally {
+            closeQuietly(connection);
+        }
+    }
+    
     public void receiveAndProcessHeavyMessages() throws JMSException {
         QueueConnection connection = createConnection();
         try {
