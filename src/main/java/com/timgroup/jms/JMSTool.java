@@ -1,8 +1,11 @@
 package com.timgroup.jms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.jms.JMSException;
@@ -25,28 +28,23 @@ public class JMSTool {
             List<String> arguments = options.getArguments();
             try {
                 URI uri = parseURI(arguments.remove(0));
+                List<InetSocketAddress> alternates = parseAlternates(options.getAlternateBrokers());
                 String command = !arguments.isEmpty() ? arguments.remove(0) : null;
-                
-                handleCommand(uri, options, command, arguments);
-            }
-            catch (URISyntaxException e) {
+                handleCommand(uri, alternates, options, command, arguments);
+            } catch (URISyntaxException e) {
                 System.err.println("invalid JMS URL: " + e.getMessage());
                 if (options.isVerbose()) e.printStackTrace();
-            }
-            catch (JMSException e) {
+            } catch (JMSException e) {
                 System.err.println("error connecting to JMS server: " + e.getMessage());
                 if (options.isVerbose()) e.printStackTrace();
-            }
-            catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 System.err.println("illegal argument: " + e.getMessage());
                 if (options.isVerbose()) e.printStackTrace();
-            }
-            catch (InvocationTargetException e) {
+            } catch (InvocationTargetException e) {
                 System.err.println("error invoking command: " + e.getCause().getMessage());
                 if (options.isVerbose()) e.getCause().printStackTrace();
             }
-        }
-        catch (ArgumentValidationException e) {
+        } catch (ArgumentValidationException e) {
             System.err.println(e.getMessage());
         }
     }
@@ -62,10 +60,29 @@ public class JMSTool {
         return new URI(Utils.stripPrefix(uriStr, "jms:"));
     }
     
-    private static void handleCommand(URI uri, JMSToolOptions options, String command, List<String> arguments) throws JMSException,
-            IllegalArgumentException, InvocationTargetException {
+    private static List<InetSocketAddress> parseAlternates(List<String> alternateStrings) {
+        if (alternateStrings == null) return Collections.emptyList();
+        ArrayList<InetSocketAddress> alternates = new ArrayList<InetSocketAddress>();
+        for (String alternateString : alternateStrings) {
+            String host;
+            int port;
+            int colon = alternateString.indexOf(':');
+            if (colon != -1) {
+                host = alternateString.substring(0, colon);
+                port = Integer.parseInt(alternateString.substring(colon + 1));
+            } else {
+                host = alternateString;
+                port = -1;
+            }
+            alternates.add(new InetSocketAddress(host, port));
+        }
+        return alternates;
+    }
+    
+    private static void handleCommand(URI uri, List<InetSocketAddress> alternates, JMSToolOptions options, String command,
+            List<String> arguments) throws JMSException, IllegalArgumentException, InvocationTargetException {
         Factory factory = getClientFactoryForScheme(uri.getScheme());
-        JMSClient client = factory.create(uri);
+        JMSClient client = factory.create(uri, alternates);
         if (command != null) {
             handleCommand(client, options, command, arguments);
         }

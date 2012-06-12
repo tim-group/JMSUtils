@@ -1,7 +1,9 @@
 package com.timgroup.jms.hornetq;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.util.HashMap;
+import java.util.List;
 
 import javax.jms.JMSException;
 import javax.jms.QueueConnection;
@@ -17,6 +19,8 @@ import org.hornetq.api.jms.JMSFactoryType;
 import org.hornetq.core.remoting.impl.netty.NettyConnectorFactory;
 import org.hornetq.core.remoting.impl.netty.TransportConstants;
 import org.hornetq.jms.client.HornetQConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.timgroup.jms.JMSClient;
 import com.timgroup.jms.JMSUtil;
@@ -24,11 +28,14 @@ import com.timgroup.util.Utils;
 
 public class HornetQClientImpl extends JMSClient {
     
+    private static final Logger LOGGER = LoggerFactory.getLogger(HornetQClientImpl.class);
+    
     private static final String JMS_QUEUE_PREFIX = "jms.queue.";
     
     public static class Factory implements JMSClient.Factory {
         @Override
-        public JMSClient create(URI uri) throws JMSException {
+        public JMSClient create(URI uri, List<InetSocketAddress> alternates) throws JMSException {
+            if (!alternates.isEmpty()) LOGGER.warn("ignoring alternate brokers {}", alternates);
             return new HornetQClientImpl(uri);
         }
     }
@@ -73,18 +80,11 @@ public class HornetQClientImpl extends JMSClient {
         return createSession(factory, username, password, xa, autoCommitSends, autoCommitAcks, preAcknowledge, ackBatchSize);
     }
     
-    private ClientSession createSession(ClientSessionFactory factory,
-                                        String username,
-                                        String password,
-                                        boolean xa,
-                                        boolean autoCommitSends,
-                                        boolean autoCommitAcks,
-                                        boolean preAcknowledge,
-                                        int ackBatchSize) throws JMSException {
+    private ClientSession createSession(ClientSessionFactory factory, String username, String password, boolean xa,
+            boolean autoCommitSends, boolean autoCommitAcks, boolean preAcknowledge, int ackBatchSize) throws JMSException {
         try {
             return factory.createSession(username, password, xa, autoCommitSends, autoCommitAcks, preAcknowledge, ackBatchSize);
-        }
-        catch (HornetQException e) {
+        } catch (HornetQException e) {
             throw JMSUtil.newJMSException("error creating session for " + username + ":" + password + "@" + factory, e);
         }
     }
@@ -92,8 +92,7 @@ public class HornetQClientImpl extends JMSClient {
     private ClientSessionFactory createSessionFactory(ServerLocator locator) throws JMSException {
         try {
             return locator.createSessionFactory();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw JMSUtil.newJMSException("error creating session factory from locator " + locator, e);
         }
     }
@@ -102,8 +101,7 @@ public class HornetQClientImpl extends JMSClient {
         ServerLocator locator;
         if (ha) {
             locator = HornetQClient.createServerLocatorWithHA(transportConfiguration);
-        }
-        else {
+        } else {
             locator = HornetQClient.createServerLocatorWithoutHA(transportConfiguration);
         }
         return locator;
@@ -123,8 +121,7 @@ public class HornetQClientImpl extends JMSClient {
         try {
             String coreQueueName = JMS_QUEUE_PREFIX + queueName;
             session.createQueue(JMS_QUEUE_PREFIX + queueName, coreQueueName, durable);
-        }
-        catch (HornetQException e) {
+        } catch (HornetQException e) {
             throw JMSUtil.newJMSException(e);
         }
     }

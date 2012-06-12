@@ -1,7 +1,9 @@
 package com.timgroup.jms.activemq;
 
+import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 
 import javax.jms.JMSException;
 import javax.jms.QueueConnection;
@@ -16,26 +18,52 @@ import com.timgroup.util.Utils;
 public class ActiveMQClientImpl extends JMSClient {
     
     public static class Factory implements JMSClient.Factory {
+        
         @Override
-        public JMSClient create(URI uri) throws JMSException {
-            return new ActiveMQClientImpl(uri);
+        public JMSClient create(URI uri, List<InetSocketAddress> alternates) throws JMSException {
+            return new ActiveMQClientImpl(uri, alternates);
         }
     }
     
     private final ActiveMQConnectionFactory connectionFactory;
     
-    public ActiveMQClientImpl(URI uri) throws JMSException {
+    public ActiveMQClientImpl(URI uri, List<InetSocketAddress> alternates) throws JMSException {
         super(uri.getPath());
         String host = uri.getHost();
-        int port = Utils.defaulting(uri.getPort(), -1, 61616);
+        int port = port(uri.getPort());
         
         URI brokerURL;
+        if (alternates.isEmpty()) {
+            brokerURL = newTCPURL(host, port, "jms.prefetchPolicy.all=1");
+        } else {
+            StringBuilder sb = new StringBuilder();
+            sb.append("failover:(");
+            sb.append(newTCPURL(host, port, null));
+            for (InetSocketAddress inetSocketAddress : alternates) {
+                sb.append(",");
+                sb.append(newTCPURL(inetSocketAddress.getHostName(), port(inetSocketAddress.getPort()), null));
+            }
+            sb.append(")");
+            sb.append("?randomize=false&jms.prefetchPolicy.all=1&timeout=1000");
+            try {
+                brokerURL = new URI(sb.toString());
+            } catch (URISyntaxException e) {
+                throw JMSUtil.newJMSException("all-too plausible error constructing broker URL", e);
+            }
+        }
+        connectionFactory = new ActiveMQConnectionFactory(brokerURL);
+    }
+    
+    private Integer port(int rawPort) {
+        return Utils.defaulting(rawPort, -1, 61616);
+    }
+    
+    private URI newTCPURL(String host, int port, String options) throws JMSException {
         try {
-            brokerURL = new URI("tcp", null, host, port, null, "jms.prefetchPolicy.all=1", null);
+            return new URI("tcp", null, host, port, null, options, null);
         } catch (URISyntaxException e) {
             throw JMSUtil.newJMSException("barely plausible error constructing broker URL", e);
         }
-        connectionFactory = new ActiveMQConnectionFactory(brokerURL);
     }
     
     @Override
