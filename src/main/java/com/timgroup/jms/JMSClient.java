@@ -72,25 +72,53 @@ public abstract class JMSClient {
         });
     }
     
+    public void trickleHeavyMessages(final int repeats, final int consumers) throws JMSException {
+        performSendAction(new SendAction() {
+            @Override
+            public void perform(QueueSession session, QueueSender sender) throws JMSException {
+                for (int i = 0; i < repeats; i++) {
+                    int weight = weight(i);
+                    TextMessage message = session.createTextMessage(constructMessage(i, weight));
+                    send(sender, message);
+                    try {
+                        Thread.sleep((weight * 1000) / consumers);
+                    } catch (InterruptedException e) {
+                        throw JMSUtil.newJMSException("interrupted resting between sends", e);
+                    }
+                }
+            }
+        });
+    }
+    
     public void sendHeavyMessages(final int repeats) throws JMSException {
         performSendAction(new SendAction() {
             @Override
             public void perform(QueueSession session, QueueSender sender) throws JMSException {
                 for (int i = 0; i < repeats; i++) {
-                    TextMessage message = session.createTextMessage(constructMessage(i));
+                    int weight = weight(i);
+                    TextMessage message = session.createTextMessage(constructMessage(i, weight));
                     send(sender, message);
                 }
             }
         });
     }
     
-    private String constructMessage(int id) {
+    private String constructMessage(int id, int weight) {
+        return dots(weight) + id;
+    }
+    
+    private int weight(int id) {
+        int i;
         if (id % 2 == 0) {
-            return ".........." + id;
+            i = 10;
+        } else {
+            i = 19;
         }
-        else {
-            return "..................." + id;
-        }
+        return i;
+    }
+    
+    private String dots(int numDots) {
+        return "....................................................................................................".substring(0, numDots);
     }
     
     public void sendShortTextMessages() throws JMSException {
