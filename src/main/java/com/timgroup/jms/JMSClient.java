@@ -114,7 +114,7 @@ public abstract class JMSClient {
         if (id % 2 == 0) {
             i = 3;
         } else {
-            i = 5;
+            i = 10;
         }
         return i;
     }
@@ -234,6 +234,7 @@ public abstract class JMSClient {
     public void closeQuietly(Connection connection) {
         try {
             connection.close();
+            LOGGER.info("closed connection");
         } catch (JMSException e) {
             LOGGER.error("error closing connection " + connection, e);
         }
